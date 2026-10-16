@@ -1,0 +1,393 @@
+
+<!DOCTYPE html>
+<html lang="pt-br"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <!--
+        ARQUIVO: usuarios.html
+
+        CAMADA: Frontend (Apresentação)
+
+        RESPONSABILIDADE:
+        Exibir a interface de cadastro de usuários.
+
+        FUNCIONALIDADES:
+        1. Cadastrar usuários.
+        2. Listar usuários cadastrados.
+        3. Exibir o total de usuários.
+        4. Editar usuários.
+        5. Excluir usuários.
+        6. Exportar dados para CSV.
+
+        TECNOLOGIAS:
+        HTML, Thymeleaf e JavaScript.
+
+        IMPORTANTE:
+        As regras de negócio são executadas
+        no UsuarioService, no backend.
+    -->
+
+    <!-- Define a codificação dos caracteres. -->
+    <meta charset="UTF-8">
+
+    <!-- Ajusta a página para diferentes telas. -->
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <!-- Título exibido na aba do navegador. -->
+    <title>Cadastro de Usuários</title>
+</head>
+
+<body>
+
+    <!-- Título principal do sistema. -->
+    <h1>Sistema de Cadastro de Usuários</h1>
+
+    <!--
+        EXIBIÇÃO DO TOTAL DE USUÁRIOS
+
+        ${total}:
+        Valor enviado pelo UsuarioWebController.
+
+        th:text:
+        Substitui o conteúdo do elemento
+        pelo valor recebido do backend.
+    -->
+    <h2>
+        Total de usuários:
+        <span th:text="${total}">0</span>
+    </h2>
+
+    <!--
+        TÍTULO DO FORMULÁRIO
+
+        O JavaScript altera esse título
+        conforme a operação realizada:
+
+        Novo Cadastro
+        ou
+        Atualizar Cadastro.
+    -->
+    <h3 id="tituloFormulario">Novo Cadastro</h3>
+
+    <!--
+        FORMULÁRIO DE USUÁRIOS
+
+        id="formUsuario":
+        Identifica o formulário no JavaScript.
+
+        th:action:
+        Define a rota inicial de cadastro.
+
+        th:object:
+        Associa o formulário ao objeto Usuario
+        enviado pelo Controller.
+
+        method="post":
+        Envia os dados usando HTTP POST.
+    -->
+    <form id="formUsuario"
+          th:action="@{/usuarios/salvar}"
+          th:object="${usuario}"
+          method="post">
+
+        <!-- Campo para informar o nome. -->
+        <label for="nome">Nome:</label>
+
+        <input type="text"
+               id="nome"
+               th:field="*{nome}"
+               required>
+
+        <!--
+            Campo de e-mail.
+
+            type="email":
+            Ativa a validação básica do navegador.
+
+            required:
+            Exige o preenchimento do campo.
+        -->
+        <label for="email">E-mail:</label>
+
+        <input type="email"
+               id="email"
+               th:field="*{email}"
+               required>
+
+        <!-- Campo para informar o telefone. -->
+        <label for="telefone">Telefone:</label>
+
+        <input type="tel"
+               id="telefone"
+               th:field="*{telefone}"
+               required>
+
+        <!--
+            BOTÃO DE ENVIO
+
+            No cadastro:
+            Exibe "Cadastrar".
+
+            Na edição:
+            Exibe "Salvar Alterações".
+        -->
+        <button type="submit" id="btnSalvar">
+            Cadastrar
+        </button>
+
+        <!--
+            BOTÃO CANCELAR EDIÇÃO
+
+            type="button":
+            Não envia o formulário.
+
+            onclick:
+            Executa a função cancelarEdicao().
+
+            hidden:
+            Mantém o botão oculto inicialmente.
+        -->
+        <button type="button"
+                id="btnCancelar"
+                onclick="cancelarEdicao()"
+                hidden>
+            Cancelar Edição
+        </button>
+
+    </form>
+
+    <hr>
+
+    <!--
+        LISTAGEM DE USUÁRIOS
+
+        Exibe os registros enviados pelo
+        Controller através do atributo
+        ${usuarios}.
+    -->
+    <h2>Usuários Cadastrados</h2>
+
+    <!--
+        EXPORTAÇÃO CSV
+
+        Ao clicar no link, o navegador
+        realiza uma requisição GET.
+
+        O UsuarioWebController recebe
+        a requisição e utiliza o CsvService.
+    -->
+    <a th:href="@{/usuarios/exportar-csv}">
+        Exportar CSV
+    </a>
+
+    <!-- Tabela de usuários cadastrados. -->
+    <table border="1">
+
+        <!-- Cabeçalho da tabela. -->
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Telefone</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            <!--
+                th:each:
+                Percorre a lista de usuários.
+
+                u:
+                Representa cada usuário da lista.
+
+                ${usuarios}:
+                Lista enviada pelo Controller.
+            -->
+            <tr th:each="u : ${usuarios}">
+
+                <!-- Exibe os atributos do usuário. -->
+                <td th:text="${u.nome}"></td>
+                <td th:text="${u.email}"></td>
+                <td th:text="${u.telefone}"></td>
+
+                <td>
+
+                    <!--
+                        BOTÃO EDITAR
+
+                        th:attr:
+                        Adiciona atributos data-* ao botão.
+
+                        Esses atributos armazenam os dados
+                        do usuário que serão utilizados
+                        pelo JavaScript.
+
+                        onclick:
+                        Executa editarUsuario(this).
+                    -->
+                    <button type="button"
+                            th:attr="data-id=${u.id},
+                                     data-nome=${u.nome},
+                                     data-email=${u.email},
+                                     data-telefone=${u.telefone}"
+                            onclick="editarUsuario(this)">
+                        Editar
+                    </button>
+
+                    <!--
+                        FORMULÁRIO DE EXCLUSÃO
+
+                        th:action:
+                        Monta a rota usando o ID do usuário.
+
+                        method="post":
+                        Envia uma requisição POST.
+
+                        onsubmit:
+                        Solicita confirmação antes
+                        de enviar a exclusão.
+                    -->
+                    <form th:action="@{/usuarios/excluir/{id}(id=${u.id})}"
+                          method="post"
+                          style="display:inline;"
+                          onsubmit="return confirm('Deseja excluir este usuário?');">
+
+                        <button type="submit">
+                            Excluir
+                        </button>
+
+                    </form>
+
+                </td>
+            </tr>
+
+        </tbody>
+    </table>
+
+    <!--
+        JAVASCRIPT
+
+        RESPONSABILIDADE:
+        Controlar o comportamento do formulário
+        durante cadastro e edição.
+
+        th:inline="javascript":
+        Permite utilizar expressões Thymeleaf
+        dentro do JavaScript.
+    -->
+    <script th:inline="javascript">
+
+        /*
+         * URL DE CADASTRO
+         *
+         * Define a rota utilizada quando
+         * o formulário está no modo cadastro.
+         */
+        const urlCadastro =
+            /*[[@{/usuarios/salvar}]]*/ '/usuarios/salvar';
+
+        /*
+         * URL DE ATUALIZAÇÃO
+         *
+         * Define o caminho-base utilizado
+         * para atualizar um usuário.
+         */
+        const urlAtualizacao =
+            /*[[@{/usuarios/atualizar/}]]*/ '/usuarios/atualizar/';
+
+        /**
+         * FUNÇÃO: editarUsuario
+         *
+         * RESPONSABILIDADE:
+         * Preencher o formulário com os dados
+         * de um usuário já cadastrado.
+         *
+         * ETAPAS:
+         * 1. Obter o ID do usuário.
+         * 2. Preencher os campos.
+         * 3. Alterar a rota do formulário.
+         * 4. Alterar o título.
+         * 5. Alterar o texto do botão.
+         * 6. Exibir o botão cancelar.
+         *
+         * @param botao Botão Editar clicado.
+         */
+        function editarUsuario(botao) {
+
+            // Obtém o ID armazenado no botão.
+            const id = botao.dataset.id;
+
+            // Preenche os campos com os dados
+            // do usuário selecionado.
+            document.getElementById("nome").value =
+                botao.dataset.nome;
+
+            document.getElementById("email").value =
+                botao.dataset.email;
+
+            document.getElementById("telefone").value =
+                botao.dataset.telefone;
+
+            // Altera o destino do formulário
+            // para a rota de atualização.
+            document.getElementById("formUsuario").action =
+                urlAtualizacao + encodeURIComponent(id);
+
+            // Altera o título do formulário.
+            document.getElementById("tituloFormulario").innerText =
+                "Atualizar Cadastro";
+
+            // Altera o texto do botão principal.
+            document.getElementById("btnSalvar").innerText =
+                "Salvar Alterações";
+
+            // Exibe o botão cancelar.
+            document.getElementById("btnCancelar").hidden = false;
+
+            // Posiciona o cursor no campo nome.
+            document.getElementById("nome").focus();
+        }
+
+        /**
+         * FUNÇÃO: cancelarEdicao
+         *
+         * RESPONSABILIDADE:
+         * Retornar o formulário ao modo cadastro.
+         *
+         * ETAPAS:
+         * 1. Restaurar os campos do formulário.
+         * 2. Restaurar a rota de cadastro.
+         * 3. Restaurar o título.
+         * 4. Restaurar o botão Cadastrar.
+         * 5. Ocultar o botão Cancelar Edição.
+         */
+        function cancelarEdicao() {
+
+            // Restaura os valores iniciais
+            // dos campos do formulário.
+            document.getElementById("formUsuario").reset();
+
+            // Retorna o destino para cadastro.
+            document.getElementById("formUsuario").action =
+                urlCadastro;
+
+            // Restaura o título original.
+            document.getElementById("tituloFormulario").innerText =
+                "Novo Cadastro";
+
+            // Restaura o texto do botão.
+            document.getElementById("btnSalvar").innerText =
+                "Cadastrar";
+
+            // Oculta o botão cancelar.
+            document.getElementById("btnCancelar").hidden = true;
+        }
+
+    </script>
+
+</body>
+</html>

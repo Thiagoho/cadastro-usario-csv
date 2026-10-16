@@ -1,0 +1,147 @@
+
+# ARQUIVO: compose.yml
+#
+# RESPONSABILIDADE:
+# Definir e executar os serviços necessários
+# para o funcionamento do sistema.
+#
+# SERVIÇOS:
+# 1. mysql   - Banco de dados MySQL.
+# 2. api-app - Aplicação Java Spring Boot.
+#
+# O Docker Compose permite que os dois
+# serviços sejam executados em contêineres
+# separados, utilizando uma rede compartilhada.
+
+# Versão declarada no arquivo original.
+# OBSERVAÇÃO:
+# No Docker Compose moderno, essa propriedade
+# é obsoleta e pode ser removida.
+version: '3.8'
+
+# Define os serviços da aplicação.
+services:
+
+  # SERVIÇO: mysql
+  #
+  # RESPONSABILIDADE:
+  # Executar o banco de dados utilizado
+  # pelo sistema de cadastro de usuários.
+  mysql:
+
+    # Utiliza a imagem MySQL da versão 8.
+    image: mysql:8
+
+    # Define o nome do contêiner.
+    container_name: mysql-cadastro
+
+    # Reinicia o contêiner automaticamente,
+    # exceto quando ele é parado manualmente.
+    restart: unless-stopped
+
+    # Variáveis de configuração do MySQL.
+    environment:
+
+      # Senha do administrador root.
+      MYSQL_ROOT_PASSWORD: SuaSenhaForte123
+
+      # Banco criado na primeira inicialização
+      # de um diretório de dados vazio.
+      MYSQL_DATABASE: cadastro_usuarios
+
+      # Usuário utilizado pela aplicação.
+      MYSQL_USER: cadastro_user
+
+      # Senha do usuário da aplicação.
+      MYSQL_PASSWORD: SuaSenhaForte123
+
+    # Mapeamento de portas:
+    #
+    # 3308 = Porta do computador local.
+    # 3306 = Porta do MySQL no contêiner.
+    ports:
+      - "3308:3306"
+
+    # Armazena os dados do MySQL em um
+    # volume persistente do Docker.
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    # Conecta o MySQL à rede compartilhada.
+    networks:
+      - yuorway-network
+
+    # Verifica periodicamente se o servidor
+    # MySQL está respondendo.
+    healthcheck:
+
+      # Executa o comando de verificação.
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+
+      # Intervalo entre verificações.
+      interval: 10s
+
+      # Tempo máximo de cada verificação.
+      timeout: 5s
+
+      # Número de tentativas consecutivas
+      # malsucedidas antes de marcar unhealthy.
+      retries: 5
+
+  # SERVIÇO: api-app
+  #
+  # RESPONSABILIDADE:
+  # Executar a aplicação Spring Boot.
+  api-app:
+
+    # Constrói a imagem a partir do Dockerfile
+    # localizado no diretório atual.
+    build: .
+
+    # Nome do contêiner da aplicação.
+    container_name: app-cadastro
+
+    # Disponibiliza a aplicação na porta 8080.
+    ports:
+      - "8080:8080"
+
+    # Configura a conexão com o MySQL.
+    environment:
+
+      # mysql = nome do serviço do banco.
+      # 3306 = porta interna do MySQL.
+      # cadastro_usuarios = nome do banco.
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/cadastro_usuarios?allowPublicKeyRetrieval=true&useSSL=false
+
+      # Usuário do banco de dados.
+      SPRING_DATASOURCE_USERNAME: cadastro_user
+
+      # Senha de acesso ao banco.
+      SPRING_DATASOURCE_PASSWORD: SuaSenhaForte123
+
+    # Conecta a aplicação à mesma rede
+    # utilizada pelo banco de dados.
+    networks:
+      - yuorway-network
+
+    # Aguarda o MySQL apresentar o estado
+    # healthy antes de iniciar a aplicação.
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+# VOLUMES
+#
+# Define o armazenamento persistente
+# utilizado pelo banco de dados.
+volumes:
+  mysql_data:
+    driver: local
+
+# REDES
+#
+# Permite a comunicação entre os
+# contêineres mysql e api-app.
+networks:
+  yuorway-network:
+    driver: bridge
